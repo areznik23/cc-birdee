@@ -1,6 +1,13 @@
 import { Session, ProcessedMessage, MetricsSummary, ActivityBreakdown, ToolUsage } from '../types';
+import { SessionScorer } from './session-scorer';
 
 export class MetricsEngine {
+  private sessionScorer: SessionScorer;
+
+  constructor() {
+    this.sessionScorer = new SessionScorer();
+  }
+
   /**
    * Calculate all metrics for a session
    */
@@ -16,13 +23,28 @@ export class MetricsEngine {
     // Calculate quality metrics
     const avgPromptQuality = this.calculateAveragePromptQuality(messages);
     const loopCount = 0; // Will be implemented with loop detection
-    const sessionScore = 0; // Will be implemented in session scoring
-    const scoreBreakdown = {
-      efficiency: 0,
-      quality: 0,
-      progression: 0,
-      toolMastery: 0
+
+    // Create temporary metrics for session scoring
+    const tempMetrics: MetricsSummary = {
+      totalTokens,
+      messageCount,
+      toolUsage,
+      avgPromptQuality,
+      loopCount,
+      activityBreakdown,
+      sessionScore: 0,
+      scoreBreakdown: {
+        efficiency: 0,
+        quality: 0,
+        progression: 0,
+        toolMastery: 0
+      }
     };
+
+    // Calculate session scores using the temporary session
+    const tempSession = { ...session, metrics: tempMetrics };
+    const sessionScore = this.sessionScorer.scoreSession(tempSession);
+    const scoreBreakdown = this.sessionScorer.calculateScoreBreakdown(tempSession);
 
     return {
       totalTokens,
