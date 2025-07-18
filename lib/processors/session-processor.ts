@@ -1,7 +1,14 @@
 import { LogEntry, Session, ProcessedMessage, ActivityType } from '../types';
 import { extractTextFromContent } from '../utils';
+import { ActivityCategorizer } from '../analyzers/activity-categorizer';
 
 export class SessionProcessor {
+  private activityCategorizer: ActivityCategorizer;
+
+  constructor() {
+    this.activityCategorizer = new ActivityCategorizer();
+  }
+
   /**
    * Process log entries into a structured session
    */
@@ -35,6 +42,9 @@ export class SessionProcessor {
       thread.forEach(e => processedUuids.add(e.uuid));
     });
 
+    // Categorize activities for all messages
+    const categorizedMessages = this.activityCategorizer.categorizeSession(messages);
+
     // Calculate session metrics
     const startTime = new Date(sortedEntries[0].timestamp);
     const endTime = new Date(sortedEntries[sortedEntries.length - 1].timestamp);
@@ -44,13 +54,13 @@ export class SessionProcessor {
     const summaryEntry = sortedEntries.find(e => e.type === 'summary');
     const summary = summaryEntry 
       ? extractTextFromContent(summaryEntry.message.content) 
-      : this.generateSummary(messages);
+      : this.generateSummary(categorizedMessages);
 
     return {
       id: sessionId,
       summary,
       duration,
-      messages,
+      messages: categorizedMessages,
       metrics: {
         totalTokens: 0, // Will be calculated by metrics engine
         messageCount: { user: 0, assistant: 0 },
