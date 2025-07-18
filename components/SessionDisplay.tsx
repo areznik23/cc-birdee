@@ -2,6 +2,7 @@
 
 import { Session } from '@/lib/types';
 import { formatDuration, formatTokenCount } from '@/lib/utils';
+import { ActivityTimeline } from './ActivityTimeline';
 
 interface SessionDisplayProps {
   session: Session;
@@ -71,6 +72,13 @@ export function SessionDisplay({ session }: SessionDisplayProps) {
           icon="💬"
         />
       </div>
+
+      {/* Activity Timeline */}
+      <ActivityTimeline 
+        messages={session.messages}
+        startTime={session.startTime}
+        endTime={session.endTime}
+      />
 
       {/* Activity Breakdown */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
