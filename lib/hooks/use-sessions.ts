@@ -1,18 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileInfo, LogEntry } from '../types';
-
-interface SessionData {
-  sessionId: string;
-  entries: LogEntry[];
-  entryCount: number;
-  startTime: string;
-  endTime: string;
-}
+import { FileInfo, Session } from '../types';
 
 interface ParseResult {
   totalEntries: number;
   sessionCount: number;
-  sessions: SessionData[];
+  sessions: Session[];
 }
 
 export function useSessions() {

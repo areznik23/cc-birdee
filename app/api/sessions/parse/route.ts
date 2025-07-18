@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FileService } from '@/lib/services/file-service';
 import { JSONLParser } from '@/lib/parsers/jsonl-parser';
+import { SessionProcessor } from '@/lib/processors/session-processor';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +16,7 @@ export async function POST(request: NextRequest) {
 
     const fileService = new FileService();
     const parser = new JSONLParser();
+    const processor = new SessionProcessor();
 
     // Read file content
     const content = await fileService.readFile(filePath);
@@ -25,14 +27,8 @@ export async function POST(request: NextRequest) {
     // Group by sessions
     const sessionMap = parser.parseAndGroupBySessions(content);
     
-    // Convert map to array format
-    const sessions = Array.from(sessionMap.entries()).map(([sessionId, entries]) => ({
-      sessionId,
-      entries,
-      entryCount: entries.length,
-      startTime: entries[0]?.timestamp,
-      endTime: entries[entries.length - 1]?.timestamp
-    }));
+    // Process sessions
+    const sessions = processor.processSessions(sessionMap);
 
     return NextResponse.json({
       totalEntries: entries.length,
