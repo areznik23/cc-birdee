@@ -24,7 +24,13 @@ export function useSessions() {
         throw new Error(data.error || 'Failed to fetch sessions');
       }
       
-      setFiles(data.files || []);
+      // Convert date strings to Date objects
+      const files = (data.files || []).map((file: any) => ({
+        ...file,
+        lastModified: new Date(file.lastModified)
+      }));
+      
+      setFiles(files);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -65,6 +71,19 @@ export function useParseSession() {
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to parse session');
+      }
+      
+      // Convert date strings back to Date objects
+      if (data.sessions) {
+        data.sessions = data.sessions.map((session: any) => ({
+          ...session,
+          startTime: new Date(session.startTime),
+          endTime: new Date(session.endTime),
+          messages: session.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }))
+        }));
       }
       
       return data;

@@ -20,8 +20,11 @@ interface TimelineSegment {
 }
 
 export function ActivityTimeline({ messages, startTime, endTime }: ActivityTimelineProps) {
+  // Ensure startTime is a Date object
+  const sessionStartTime = startTime instanceof Date ? startTime : new Date(startTime);
+  
   // Create timeline segments from messages
-  const segments = createTimelineSegments(messages, startTime);
+  const segments = createTimelineSegments(messages, sessionStartTime);
 
   // Convert to chart data
   const chartData = segments.map((segment, index) => ({
