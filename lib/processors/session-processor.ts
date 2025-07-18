@@ -1,12 +1,15 @@
 import { LogEntry, Session, ProcessedMessage, ActivityType } from '../types';
 import { extractTextFromContent } from '../utils';
 import { ActivityCategorizer } from '../analyzers/activity-categorizer';
+import { MetricsEngine } from '../analyzers/metrics-engine';
 
 export class SessionProcessor {
   private activityCategorizer: ActivityCategorizer;
+  private metricsEngine: MetricsEngine;
 
   constructor() {
     this.activityCategorizer = new ActivityCategorizer();
+    this.metricsEngine = new MetricsEngine();
   }
 
   /**
@@ -56,13 +59,14 @@ export class SessionProcessor {
       ? extractTextFromContent(summaryEntry.message.content) 
       : this.generateSummary(categorizedMessages);
 
-    return {
+    // Create initial session object
+    const session: Session = {
       id: sessionId,
       summary,
       duration,
       messages: categorizedMessages,
       metrics: {
-        totalTokens: 0, // Will be calculated by metrics engine
+        totalTokens: 0,
         messageCount: { user: 0, assistant: 0 },
         toolUsage: {},
         avgPromptQuality: 0,
@@ -79,6 +83,11 @@ export class SessionProcessor {
       startTime,
       endTime
     };
+
+    // Calculate metrics using the metrics engine
+    session.metrics = this.metricsEngine.calculateMetrics(session);
+
+    return session;
   }
 
   /**
