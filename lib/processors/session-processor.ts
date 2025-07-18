@@ -2,14 +2,17 @@ import { LogEntry, Session, ProcessedMessage, ActivityType } from '../types';
 import { extractTextFromContent } from '../utils';
 import { ActivityCategorizer } from '../analyzers/activity-categorizer';
 import { MetricsEngine } from '../analyzers/metrics-engine';
+import { PromptQualityScorer } from '../analyzers/prompt-quality-scorer';
 
 export class SessionProcessor {
   private activityCategorizer: ActivityCategorizer;
   private metricsEngine: MetricsEngine;
+  private promptQualityScorer: PromptQualityScorer;
 
   constructor() {
     this.activityCategorizer = new ActivityCategorizer();
     this.metricsEngine = new MetricsEngine();
+    this.promptQualityScorer = new PromptQualityScorer();
   }
 
   /**
@@ -45,8 +48,12 @@ export class SessionProcessor {
       thread.forEach(e => processedUuids.add(e.uuid));
     });
 
-    // Categorize activities for all messages
+    // Categorize activities and score prompt quality for all messages
     const categorizedMessages = this.activityCategorizer.categorizeSession(messages);
+    const scoredMessages = categorizedMessages.map(message => ({
+      ...message,
+      promptQuality: this.promptQualityScorer.scorePrompt(message)
+    }));
 
     // Calculate session metrics
     const startTime = new Date(sortedEntries[0].timestamp);
@@ -57,14 +64,14 @@ export class SessionProcessor {
     const summaryEntry = sortedEntries.find(e => e.type === 'summary');
     const summary = summaryEntry 
       ? extractTextFromContent(summaryEntry.message.content) 
-      : this.generateSummary(categorizedMessages);
+      : this.generateSummary(scoredMessages);
 
     // Create initial session object
     const session: Session = {
       id: sessionId,
       summary,
       duration,
-      messages: categorizedMessages,
+      messages: scoredMessages,
       metrics: {
         totalTokens: 0,
         messageCount: { user: 0, assistant: 0 },

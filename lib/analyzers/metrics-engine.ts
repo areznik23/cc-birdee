@@ -13,10 +13,10 @@ export class MetricsEngine {
     const toolUsage = this.calculateToolUsage(messages);
     const activityBreakdown = this.calculateActivityBreakdown(messages);
     
-    // Calculate quality metrics (placeholder for now, will be implemented in next commits)
-    const avgPromptQuality = 0;
-    const loopCount = 0;
-    const sessionScore = 0;
+    // Calculate quality metrics
+    const avgPromptQuality = this.calculateAveragePromptQuality(messages);
+    const loopCount = 0; // Will be implemented with loop detection
+    const sessionScore = 0; // Will be implemented in session scoring
     const scoreBreakdown = {
       efficiency: 0,
       quality: 0,
@@ -90,6 +90,20 @@ export class MetricsEngine {
     });
 
     return breakdown;
+  }
+
+  /**
+   * Calculate average prompt quality score
+   */
+  private calculateAveragePromptQuality(messages: ProcessedMessage[]): number {
+    const userMessages = messages.filter(m => m.role === 'user');
+    
+    if (userMessages.length === 0) return 0;
+
+    const scores = userMessages.map(m => m.promptQuality || 0);
+    const total = scores.reduce((sum, score) => sum + score, 0);
+
+    return Math.round(total / userMessages.length);
   }
 
   /**
