@@ -48,7 +48,7 @@ export function PromptQualityTrend({ messages }: PromptQualityTrendProps) {
             data={chartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#9B9186" opacity={0.2} />
             <XAxis 
               dataKey="index" 
               label={{ 
@@ -87,7 +87,7 @@ export function PromptQualityTrend({ messages }: PromptQualityTrendProps) {
             />
             <ReferenceLine 
               y={overallAverage} 
-              stroke="#9CA3AF" 
+              stroke="#9B9186" 
               strokeDasharray="5 5" 
               label={{ 
                 value: `Avg: ${overallAverage}`, 
@@ -98,15 +98,15 @@ export function PromptQualityTrend({ messages }: PromptQualityTrendProps) {
             <Line 
               type="monotone" 
               dataKey="quality" 
-              stroke="#3B82F6" 
+              stroke="#B8956F" 
               strokeWidth={2}
-              dot={{ fill: '#3B82F6', r: 4 }}
+              dot={{ fill: '#B8956F', r: 4 }}
               name="Quality Score"
             />
             <Line 
               type="monotone" 
               dataKey="movingAverage" 
-              stroke="#10B981" 
+              stroke="#C4A57B" 
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={false}
@@ -149,11 +149,11 @@ export function PromptQualityTrend({ messages }: PromptQualityTrendProps) {
         <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             {chartData[chartData.length - 1].movingAverage > chartData[0].movingAverage ? (
-              <span className="text-green-600 dark:text-green-400">
+              <span className="text-green-700 dark:text-green-600">
                 ↑ Improving trend (+{chartData[chartData.length - 1].movingAverage - chartData[0].movingAverage} points)
               </span>
             ) : chartData[chartData.length - 1].movingAverage < chartData[0].movingAverage ? (
-              <span className="text-red-600 dark:text-red-400">
+              <span className="text-red-700 dark:text-red-600">
                 ↓ Declining trend ({chartData[chartData.length - 1].movingAverage - chartData[0].movingAverage} points)
               </span>
             ) : (

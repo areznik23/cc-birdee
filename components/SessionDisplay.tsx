@@ -3,8 +3,7 @@
 import { Session } from '@/lib/types';
 import { formatDuration, formatTokenCount } from '@/lib/utils';
 import { ActivityTimeline } from './ActivityTimeline';
-import { ToolUsageChart } from './ToolUsageChart';
-import { PromptQualityTrend } from './PromptQualityTrend';
+import { SessionSummaryDiff } from './SessionSummaryDiff';
 
 interface SessionDisplayProps {
   session: Session;
@@ -12,6 +11,23 @@ interface SessionDisplayProps {
 
 export function SessionDisplay({ session }: SessionDisplayProps) {
   const { metrics } = session;
+  
+  // Find the initial user prompt
+  let initialPrompt = session.messages.find(msg => 
+    msg.role === 'user' && 
+    msg.activity === 'initial_question' &&
+    !msg.content.includes('[Request interrupted by user]') &&
+    !msg.content.includes('<system-reminder>')
+  );
+  
+  // Fallback: if no initial_question found, get first user message without system-reminder
+  if (!initialPrompt) {
+    initialPrompt = session.messages.find(msg => 
+      msg.role === 'user' && 
+      !msg.content.includes('<system-reminder>') &&
+      !msg.content.includes('[Request interrupted by user]')
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -27,7 +43,7 @@ export function SessionDisplay({ session }: SessionDisplayProps) {
         {/* Session Score */}
         <div className="mt-4 flex items-center gap-4">
           <div className="text-center">
-            <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-4xl font-bold" style={{ color: '#D4A574' }}>
               {metrics.sessionScore}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -51,36 +67,42 @@ export function SessionDisplay({ session }: SessionDisplayProps) {
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <MetricCard
-          title="Duration"
-          value={formatDuration(session.duration)}
-          icon="⏱️"
-        />
-        <MetricCard
-          title="Tokens"
-          value={formatTokenCount(metrics.totalTokens)}
-          icon="🔤"
-        />
-        <MetricCard
-          title="Quality"
-          value={`${metrics.avgPromptQuality}/100`}
-          icon="⭐"
-        />
-        <MetricCard
-          title="Messages"
-          value={`${metrics.messageCount.user + metrics.messageCount.assistant}`}
-          icon="💬"
-        />
-      </div>
-
       {/* Activity Timeline */}
       <ActivityTimeline 
         messages={session.messages}
         startTime={session.startTime}
         endTime={session.endTime}
       />
+
+      {/* Session Summary */}
+      <SessionSummaryDiff 
+        messages={session.messages} 
+        initialPrompt={initialPrompt} 
+      />
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <MetricCard
+          title="Duration"
+          value={formatDuration(session.duration)}
+          icon="duration"
+        />
+        <MetricCard
+          title="Tokens"
+          value={formatTokenCount(metrics.totalTokens)}
+          icon="tokens"
+        />
+        <MetricCard
+          title="Quality"
+          value={`${metrics.avgPromptQuality}/100`}
+          icon="quality"
+        />
+        <MetricCard
+          title="Messages"
+          value={`${metrics.messageCount.user}`}
+          icon="messages"
+        />
+      </div>
 
       {/* Activity Breakdown */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
@@ -101,11 +123,6 @@ export function SessionDisplay({ session }: SessionDisplayProps) {
         </div>
       </div>
 
-      {/* Tool Usage Chart */}
-      <ToolUsageChart toolUsage={metrics.toolUsage} />
-
-      {/* Prompt Quality Trend */}
-      <PromptQualityTrend messages={session.messages} />
     </div>
   );
 }
@@ -117,6 +134,29 @@ interface MetricCardProps {
 }
 
 function MetricCard({ title, value, icon }: MetricCardProps) {
+  const iconMap: Record<string, JSX.Element> = {
+    duration: (
+      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    tokens: (
+      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    ),
+    quality: (
+      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    messages: (
+      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+    ),
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
       <div className="flex items-center justify-between">
@@ -126,7 +166,7 @@ function MetricCard({ title, value, icon }: MetricCardProps) {
             {value}
           </p>
         </div>
-        {icon && <span className="text-2xl">{icon}</span>}
+        {icon && iconMap[icon]}
       </div>
     </div>
   );

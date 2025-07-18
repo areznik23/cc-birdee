@@ -105,7 +105,8 @@ export class MetricsEngine {
   private calculateActivityBreakdown(messages: ProcessedMessage[]): ActivityBreakdown {
     const breakdown: ActivityBreakdown = {};
 
-    messages.forEach(message => {
+    // Only count user messages for activity breakdown
+    messages.filter(m => m.role === 'user').forEach(message => {
       if (message.activity) {
         breakdown[message.activity] = (breakdown[message.activity] || 0) + 1;
       }
@@ -205,14 +206,14 @@ export class MetricsEngine {
     activitiesPerMinute: number;
   } {
     const duration = session.duration || 1; // Avoid division by zero
-    const totalMessages = session.messages.length;
+    const userMessages = session.messages.filter(m => m.role === 'user').length;
     const totalTools = Object.values(session.metrics.toolUsage).reduce((sum, count) => sum + count, 0);
     const totalActivities = Object.values(session.metrics.activityBreakdown).reduce((sum, count) => sum + count, 0);
 
     return {
       tokensPerMinute: session.metrics.totalTokens / duration,
-      messagesPerMinute: totalMessages / duration,
-      toolsPerMessage: totalMessages > 0 ? totalTools / totalMessages : 0,
+      messagesPerMinute: userMessages / duration,
+      toolsPerMessage: userMessages > 0 ? totalTools / userMessages : 0,
       activitiesPerMinute: totalActivities / duration
     };
   }

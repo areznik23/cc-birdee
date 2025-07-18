@@ -54,7 +54,17 @@ export class ActivityCategorizer {
       return 'solution_design';
     }
 
-    return 'completion';
+    // Check for follow-up/continuation patterns
+    if (this.isFollowUp(content)) {
+      return 'code_exploration';
+    }
+
+    // Default to exploration for questions, implementation for statements
+    if (content.includes('?') || /\b(what|how|why|when|where|which)\b/i.test(content)) {
+      return 'code_exploration';
+    }
+    
+    return 'implementation';
   }
 
   private categorizeAssistantActivity(
@@ -68,17 +78,29 @@ export class ActivityCategorizer {
 
     // Otherwise, infer from tools used
     const tools = message.toolsUsed;
-    if (tools.includes('Write') || tools.includes('MultiEdit')) {
+    if (tools.includes('Write') || tools.includes('MultiEdit') || tools.includes('Edit')) {
       return 'implementation';
     }
     if (tools.includes('TodoWrite')) {
       return 'task_management';
     }
-    if (tools.includes('Read') || tools.includes('Grep')) {
+    if (tools.includes('Read') || tools.includes('Grep') || tools.includes('Glob') || tools.includes('LS')) {
       return 'code_exploration';
     }
+    if (tools.includes('Bash')) {
+      return 'validation';
+    }
+    if (tools.includes('Task')) {
+      return 'deep_dive';
+    }
 
-    return 'completion';
+    // Default based on content analysis
+    const content = message.content.toLowerCase();
+    if (content.includes('error') || content.includes('fail')) {
+      return 'error_handling';
+    }
+    
+    return 'code_exploration';
   }
 
   private isInitialQuestion(
@@ -95,8 +117,6 @@ export class ActivityCategorizer {
   }
 
   private isTaskManagement(content: string, tools: string[]): boolean {
-    if (tools.includes('TodoWrite')) return true;
-
     const patterns = [
       /\btodo\b/i,
       /\btask\b/i,
@@ -104,7 +124,9 @@ export class ActivityCategorizer {
       /\bsteps?\b/i,
       /\borganize\b/i,
       /\bschedule\b/i,
-      /\bprioritize\b/i
+      /\bprioritize\b/i,
+      /\blet's\s+(start|begin|do)/i,
+      /\bwhat\s+(should|do)\s+(i|we)\s+do/i
     ];
 
     return patterns.some(pattern => pattern.test(content));
@@ -125,15 +147,20 @@ export class ActivityCategorizer {
       /\bdoesn't work\b/i,
       /\bfix\b/i,
       /\bissue\b/i,
-      /\bproblem\b/i
+      /\bproblem\b/i,
+      /\bwrong\b/i,
+      /\bbroken\b/i,
+      /\b404\b/,
+      /\b500\b/,
+      /\bwarning\b/i,
+      /\bgetting\s+this\s*:/i,
+      /\bwhy\s+is\s+this\b/i
     ];
 
     return errorPatterns.some(pattern => pattern.test(content));
   }
 
   private isImplementation(content: string, tools: string[]): boolean {
-    if (tools.includes('Write') || tools.includes('MultiEdit')) return true;
-
     const patterns = [
       /\bimplement\b/i,
       /\bcreate\b/i,
@@ -142,7 +169,13 @@ export class ActivityCategorizer {
       /\bwrite\b/i,
       /\bcode\b/i,
       /\bdevelop\b/i,
-      /\bmake\b/i
+      /\bmake\b/i,
+      /\bgenerate\b/i,
+      /\bupdate\b/i,
+      /\bmodify\b/i,
+      /\brefactor\b/i,
+      /\bchange\b/i,
+      /\bedit\b/i
     ];
 
     return patterns.some(pattern => pattern.test(content));
@@ -202,17 +235,19 @@ export class ActivityCategorizer {
   }
 
   private isCodeExploration(content: string, tools: string[]): boolean {
-    if (tools.includes('Grep') || tools.includes('Read')) return true;
-
     const patterns = [
       /\bfind\b/i,
       /\bsearch\b/i,
-      /\blook for\b/i,
-      /\bwhere is\b/i,
+      /\blook\s+(for|at)\b/i,
+      /\bwhere\s+(is|are)\b/i,
       /\blocate\b/i,
       /\bexplore\b/i,
       /\bcheck\b/i,
-      /\bshow me\b/i
+      /\bshow\s+me\b/i,
+      /\bwhat\s+(is|are)\b/i,
+      /\bread\b/i,
+      /\bopen\b/i,
+      /\bview\b/i
     ];
 
     return patterns.some(pattern => pattern.test(content));
@@ -227,7 +262,11 @@ export class ActivityCategorizer {
       /\bcheck if\b/i,
       /\bensure\b/i,
       /\bmake sure\b/i,
-      /\brun\b.*\btest\b/i
+      /\brun\b.*\b(test|build|lint|check)\b/i,
+      /\btry\b/i,
+      /\bsee if\b/i,
+      /\bdoes\s+it\s+work\b/i,
+      /\bis\s+it\s+working\b/i
     ];
 
     return patterns.some(pattern => pattern.test(content));
@@ -260,6 +299,21 @@ export class ActivityCategorizer {
     const union = new Set([...words1, ...words2]);
     
     return intersection.size / union.size;
+  }
+
+  /**
+   * Check if message is a follow-up or continuation
+   */
+  private isFollowUp(content: string): boolean {
+    const patterns = [
+      /^(yes|no|ok|okay|sure|thanks|thank you|got it|i see|ah|oh)/i,
+      /^(continue|proceed|go ahead|next)/i,
+      /^(done|finished|completed)/i,
+      /^(also|additionally|furthermore)/i,
+      /^(now|then)/i
+    ];
+
+    return patterns.some(pattern => pattern.test(content.trim()));
   }
 
   /**

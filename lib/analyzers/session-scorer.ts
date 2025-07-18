@@ -61,19 +61,17 @@ export class SessionScorer {
       efficiencyScore = 95; // Excellent
     }
 
-    // Adjust for message density (too many messages might indicate confusion)
-    const messagesPerMinute = (messageCount.user + messageCount.assistant) / Math.max(duration, 1);
-    if (messagesPerMinute > 2) {
-      efficiencyScore *= 0.8; // Penalty for too much back-and-forth
+    // Adjust for message density (too many user messages might indicate confusion)
+    const userMessagesPerMinute = messageCount.user / Math.max(duration, 1);
+    if (userMessagesPerMinute > 1) {
+      efficiencyScore *= 0.8; // Penalty for too many questions
     }
 
-    // Bonus for balanced user/assistant ratio
-    const totalMessages = messageCount.user + messageCount.assistant;
-    if (totalMessages > 0) {
-      const userRatio = messageCount.user / totalMessages;
-      if (userRatio >= 0.3 && userRatio <= 0.5) {
-        efficiencyScore = Math.min(100, efficiencyScore * 1.1);
-      }
+    // Bonus for efficient communication (fewer messages to achieve goals)
+    if (messageCount.user > 0 && messageCount.user <= 5) {
+      efficiencyScore = Math.min(100, efficiencyScore * 1.2);
+    } else if (messageCount.user > 20) {
+      efficiencyScore *= 0.9; // Slight penalty for very long sessions
     }
 
     return Math.round(efficiencyScore);

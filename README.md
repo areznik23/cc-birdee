@@ -28,6 +28,24 @@ yarn install
 yarn dev
 ```
 
+### OpenAI Integration (Optional)
+
+The analyzer can use OpenAI's API to generate intelligent summaries of what was accomplished in each session. To enable this feature:
+
+1. Copy the environment template:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+2. Add your OpenAI API key to `.env.local`:
+   ```
+   OPENAI_API_KEY=your_api_key_here
+   ```
+
+3. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+
+The app will automatically fall back to pattern-based analysis if the API key is not configured or if the API call fails.
+
 ## Project Status
 
 MVP in active development. See [MVP_plan.md](./MVP_plan.md) and [commit_plan.md](./commit_plan.md) for details.

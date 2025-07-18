@@ -1,33 +1,33 @@
 import { ActivityType } from './types';
 
 export const ACTIVITY_COLORS: Record<ActivityType, string> = {
-  initial_question: '#3B82F6', // blue
-  task_management: '#8B5CF6', // purple
-  implementation: '#10B981', // green
-  error_handling: '#EF4444', // red
-  deep_dive: '#F59E0B', // amber
-  conceptual_pivot: '#EC4899', // pink
-  code_exploration: '#06B6D4', // cyan
-  validation: '#84CC16', // lime
-  solution_design: '#6366F1', // indigo
-  completion: '#22C55E', // emerald
+  initial_question: '#D4A574', // warm sand
+  task_management: '#D89B7F', // terracotta
+  implementation: '#9B8B7E', // warm taupe
+  error_handling: '#C08B7C', // dusty rose
+  deep_dive: '#B8956F', // camel
+  conceptual_pivot: '#C9A882', // wheat
+  code_exploration: '#A68B6F', // mushroom
+  validation: '#B5A492', // warm gray
+  solution_design: '#C4A57B', // honey
+  completion: '#A69B87', // sage brown
 };
 
 export const STRAIN_ZONES = {
-  low: { min: 0, max: 4, color: '#10B981', label: 'Recovery' },
-  optimal: { min: 4, max: 8, color: '#3B82F6', label: 'Optimal' },
-  overreaching: { min: 8, max: 10, color: '#EF4444', label: 'Overreaching' },
+  low: { min: 0, max: 4, color: '#A69B87', label: 'Recovery' },
+  optimal: { min: 4, max: 8, color: '#B8956F', label: 'Optimal' },
+  overreaching: { min: 8, max: 10, color: '#D89B7F', label: 'Overreaching' },
 } as const;
 
 export const TOOL_COLORS: Record<string, string> = {
-  Read: '#3B82F6',
-  Write: '#10B981',
-  MultiEdit: '#8B5CF6',
-  Grep: '#F59E0B',
-  Bash: '#EF4444',
-  TodoWrite: '#EC4899',
-  Task: '#06B6D4',
-  default: '#6B7280',
+  Read: '#B8956F',
+  Write: '#9B8B7E',
+  MultiEdit: '#C08B7C',
+  Grep: '#D4A574',
+  Bash: '#D89B7F',
+  TodoWrite: '#C9A882',
+  Task: '#A68B6F',
+  default: '#9B9186',
 };
 
 export const SESSION_LOG_PATH = '~/.claude/projects';

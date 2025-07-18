@@ -1456,6 +1456,7 @@ __metadata:
     eslint: "npm:^9.31.0"
     eslint-config-next: "npm:^15.4.1"
     next: "npm:^15.4.1"
+    openai: "npm:^5.10.1"
     postcss: "npm:^8.5.6"
     react: "npm:^19.1.0"
     react-dom: "npm:^19.1.0"
@@ -3682,6 +3683,23 @@ __metadata:
     define-properties: "npm:^1.2.1"
     es-object-atoms: "npm:^1.0.0"
   checksum: 10c0/3c47814fdc64842ae3d5a74bc9d06bdd8d21563c04d9939bf6716a9c00596a4ebc342552f8934013d1ec991c74e3671b26710a0c51815f0b603795605ab6b2c9
+  languageName: node
+  linkType: hard
+
+"openai@npm:^5.10.1":
+  version: 5.10.1
+  resolution: "openai@npm:5.10.1"
+  peerDependencies:
+    ws: ^8.18.0
+    zod: ^3.23.8
+  peerDependenciesMeta:
+    ws:
+      optional: true
+    zod:
+      optional: true
+  bin:
+    openai: bin/cli
+  checksum: 10c0/267a843eae4059f86548a6792e00dbb8b0865d712938a04402fa58dcb25b6a3943fa2da04c48b60f1605e90afd131a50c2e535bfbffb997cf161724bf6b78106
   languageName: node
   linkType: hard
 
