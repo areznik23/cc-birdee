@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const fileService = new FileService();
-    const parser = new JSONLParser();
+    const parser = new JSONLParser({ strict: false }); // Use non-strict mode to handle malformed entries
     const processor = new SessionProcessor();
 
     // Read file content

@@ -38,11 +38,14 @@ export class JSONLParser {
       );
     }
 
-    const lines = content.split('\n').filter(line => line.trim());
+    const lines = content.split('\n');
     const entries: LogEntry[] = [];
     const errors: JSONLParseError[] = [];
 
     lines.forEach((line, index) => {
+      // Skip empty lines
+      if (!line.trim()) return;
+      
       try {
         const entry = this.parseLine(line, index + 1);
         if (entry) {
@@ -53,6 +56,8 @@ export class JSONLParser {
           throw error;
         }
         errors.push(error as JSONLParseError);
+        // Log the problematic line for debugging
+        console.error(`Error parsing line ${index + 1}:`, line.substring(0, 100));
       }
     });
 
@@ -75,8 +80,11 @@ export class JSONLParser {
       const data = JSON.parse(line);
       return this.validateLogEntry(data, lineNumber);
     } catch (error) {
+      if (error instanceof JSONLParseError) {
+        throw error;
+      }
       throw new JSONLParseError(
-        'Invalid JSON',
+        `Invalid JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
         lineNumber,
         error as Error
       );
@@ -87,6 +95,11 @@ export class JSONLParser {
    * Validate parsed data matches LogEntry schema
    */
   private validateLogEntry(data: any, lineNumber: number): LogEntry {
+    // Log the data for debugging in non-strict mode
+    if (!this.strict && (!data.uuid || !data.type)) {
+      console.log(`Line ${lineNumber} data:`, JSON.stringify(data).substring(0, 200));
+    }
+
     // Required fields
     if (!data.type || !['user', 'assistant', 'summary'].includes(data.type)) {
       throw new JSONLParseError(
