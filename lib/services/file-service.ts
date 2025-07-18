@@ -119,4 +119,11 @@ export class FileService {
       return false;
     }
   }
+
+  /**
+   * Read a session file by path (alias for readFile for analytics)
+   */
+  async readSessionFile(filePath: string): Promise<string> {
+    return this.readFile(filePath);
+  }
 }

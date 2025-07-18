@@ -135,8 +135,7 @@ ssion = createSession({
       });
 
       const normalBreakdown = scorer.calculateScoreBreakdown(normalSession);
-      const chattyBreakdown = scorer.calculateScoreBreakdown(chattySe
-ssion);
+      const chattyBreakdown = scorer.calculateScoreBreakdown(chattySession);
 
       expect(normalBreakdown.efficiency).toBeGreaterThan(chattyBreakdown.efficiency);
     });

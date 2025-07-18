@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { Session } from '@/lib/types';
 import { FileSelector } from './FileSelector';
 import { SessionDisplay } from './SessionDisplay';
+import { AnalyticsPanel } from './AnalyticsPanel';
 import { useParseSession } from '@/lib/hooks/use-sessions';
 
 export function Dashboard() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(false);
   const [showMobileSelector, setShowMobileSelector] = useState(false);
+  const [activeView, setActiveView] = useState<'sessions' | 'analytics'>('sessions');
   const { parseSession, loading: parseLoading, error: parseError } = useParseSession();
 
   const handleFileSelect = async (filePath: string) => {
@@ -41,32 +43,63 @@ export function Dashboard() {
         </p>
       </header>
 
-      {/* Mobile Session Selector Button */}
-      <div className="lg:hidden mb-4">
+      {/* View Toggle Tabs */}
+      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
         <button
-          onClick={() => setShowMobileSelector(!showMobileSelector)}
-          className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+          onClick={() => setActiveView('sessions')}
+          className={`px-6 py-2 rounded-md font-medium transition-colors ${
+            activeView === 'sessions'
+              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
         >
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <div className="text-left">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {selectedSession ? 'Change Session' : 'Select Session'}
-              </p>
-              {selectedSession && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Current: {selectedSession.id.replace(/-/g, ' ')}
-                </p>
-              )}
-            </div>
-          </div>
-          <svg className={`w-5 h-5 text-gray-400 transform transition-transform ${showMobileSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          Sessions
+        </button>
+        <button
+          onClick={() => setActiveView('analytics')}
+          className={`px-6 py-2 rounded-md font-medium transition-colors ${
+            activeView === 'analytics'
+              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          Analytics
         </button>
       </div>
+
+      {/* Conditional content based on active view */}
+      {activeView === 'analytics' ? (
+        <div className="w-full">
+          <AnalyticsPanel userId="default-user" />
+        </div>
+      ) : (
+        <>
+          {/* Mobile Session Selector Button */}
+          <div className="lg:hidden mb-4">
+            <button
+              onClick={() => setShowMobileSelector(!showMobileSelector)}
+              className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {selectedSession ? 'Change Session' : 'Select Session'}
+                  </p>
+                  {selectedSession && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Current: {selectedSession.id.replace(/-/g, ' ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <svg className={`w-5 h-5 text-gray-400 transform transition-transform ${showMobileSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Fixed Sidebar - Desktop only */}
@@ -112,6 +145,8 @@ export function Dashboard() {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
