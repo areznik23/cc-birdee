@@ -3,6 +3,8 @@
 import { Session } from '@/lib/types';
 import { formatDuration, formatTokenCount } from '@/lib/utils';
 import { ActivityTimeline } from './ActivityTimeline';
+import { ToolUsageChart } from './ToolUsageChart';
+import { PromptQualityTrend } from './PromptQualityTrend';
 
 interface SessionDisplayProps {
   session: Session;
@@ -99,24 +101,11 @@ export function SessionDisplay({ session }: SessionDisplayProps) {
         </div>
       </div>
 
-      {/* Tool Usage */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Tool Usage
-        </h3>
-        <div className="space-y-2">
-          {Object.entries(metrics.toolUsage).map(([tool, count]) => (
-            <div key={tool} className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {tool}
-              </span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {count}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Tool Usage Chart */}
+      <ToolUsageChart toolUsage={metrics.toolUsage} />
+
+      {/* Prompt Quality Trend */}
+      <PromptQualityTrend messages={session.messages} />
     </div>
   );
 }
