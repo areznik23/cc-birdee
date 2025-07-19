@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import SimpleAnalyticsView from './SimpleAnalyticsView';
+import { PromptInsights } from './PromptInsights';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface AnalyticsPanelProps {
   userId?: string;
@@ -17,11 +19,21 @@ export function AnalyticsPanel({ userId = 'default-user' }: AnalyticsPanelProps)
   const [analytics, setAnalytics] = useState<SimpleAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useCached, setUseCached] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
-    console.log('AnalyticsPanel: Fetching analytics for user:', userId);
-    fetchAnalytics();
-  }, [userId]);
+    console.log('AnalyticsPanel: Loading analytics for user:', userId);
+    // Try to load cached data first
+    const cached = loadFromLocalStorage();
+    if (cached && useCached) {
+      setAnalytics(cached.data);
+      setLastUpdated(new Date(cached.timestamp));
+      setLoading(false);
+    } else {
+      fetchAnalytics();
+    }
+  }, [userId, useCached]);
 
   const fetchAnalytics = async () => {
     try {
@@ -36,10 +48,36 @@ export function AnalyticsPanel({ userId = 'default-user' }: AnalyticsPanelProps)
       
       const data = await response.json();
       setAnalytics(data);
+      // Save to local storage
+      saveToLocalStorage(data);
+      setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFromLocalStorage = (): { data: SimpleAnalytics; timestamp: string } | null => {
+    try {
+      const stored = localStorage.getItem(`analytics_${userId}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error('Failed to load from localStorage:', error);
+    }
+    return null;
+  };
+
+  const saveToLocalStorage = (data: SimpleAnalytics) => {
+    try {
+      localStorage.setItem(`analytics_${userId}`, JSON.stringify({
+        data,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
     }
   };
 
@@ -60,7 +98,7 @@ export function AnalyticsPanel({ userId = 'default-user' }: AnalyticsPanelProps)
         <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">Error Loading Analytics</h3>
         <p className="text-red-600 dark:text-red-300">{error}</p>
         <button 
-          onClick={fetchAnalyticsReport}
+          onClick={fetchAnalytics}
           className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
         >
           Retry
@@ -113,26 +151,60 @@ export function AnalyticsPanel({ userId = 'default-user' }: AnalyticsPanelProps)
             <p className="text-gray-600 dark:text-gray-400 text-sm">
               Personalized insights from your Claude Code sessions
             </p>
+            {lastUpdated && (
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                Last updated: {lastUpdated.toLocaleString()}
+              </p>
+            )}
           </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={fetchAnalytics}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Refresh
-            </button>
-            <ProcessSessionsButton userId={userId} onProcessComplete={fetchAnalytics} />
+          <div className="flex flex-col gap-2 items-end">
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  setUseCached(false);
+                  fetchAnalytics();
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Refresh
+              </button>
+              <ProcessSessionsButton userId={userId} onProcessComplete={fetchAnalytics} />
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useCached}
+                  onChange={(e) => setUseCached(e.target.checked)}
+                  className="mr-2 rounded border-gray-300"
+                />
+                <span className="text-gray-600 dark:text-gray-400">Use cached data</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Analytics Display */}
-      <SimpleAnalyticsView
-        strengths={analytics?.strengths || []}
-        weaknesses={analytics?.weaknesses || []}
-        tips={analytics?.tips || []}
-        isLoading={loading}
-      />
+      <Tabs defaultValue="personal" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="personal">Personal Analytics</TabsTrigger>
+          <TabsTrigger value="prompts">Prompt Insights</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="personal" className="mt-6">
+          <SimpleAnalyticsView
+            strengths={analytics?.strengths || []}
+            weaknesses={analytics?.weaknesses || []}
+            tips={analytics?.tips || []}
+            isLoading={loading}
+          />
+        </TabsContent>
+        
+        <TabsContent value="prompts" className="mt-6">
+          <PromptInsights />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

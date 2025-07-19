@@ -57,7 +57,10 @@ export class O3Processor {
     );
 
     // Get AI-powered analysis text
-    const analysisText = await this.getAIInsights(analysisContext, analysisDepth);
+    const analysisText = await this.getAIInsights(
+      analysisContext,
+      analysisDepth
+    );
 
     // Create basic session insight with analysis text
     const sessionInsight: SessionInsight = {
@@ -67,7 +70,7 @@ export class O3Processor {
       technicalPatterns: technicalPatterns.slice(0, 10),
       effectiveness: this.calculateEffectiveness(sessionData),
       recommendations: [],
-      analysis: analysisText
+      analysis: analysisText,
     };
 
     // Return minimal result focused on the analysis text
@@ -77,7 +80,7 @@ export class O3Processor {
       weaknessesIdentified: [],
       codingPatterns: [],
       recommendations: [],
-      confidence: 85
+      confidence: 85,
     };
 
     return result;
@@ -141,10 +144,11 @@ ${this.formatConversation(session)}
           { role: "system", content: systemPrompt },
           { role: "user", content: context },
         ],
-        temperature: 0.3,
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
         response_format: { type: "json_object" },
       });
+
+      console.log("[O3Processor] AI response:", response);
 
       const content = response.choices[0].message.content;
       console.log("[O3Processor] AI response:", content);
@@ -390,19 +394,21 @@ Return your analysis in this JSON format:
    */
   private calculateEffectiveness(session: Session): EffectivenessMetrics {
     // Simple calculations based on session metrics
-    const messageRatio = session.metrics.messageCount.assistant / 
+    const messageRatio =
+      session.metrics.messageCount.assistant /
       (session.metrics.messageCount.user || 1);
-    
-    const toolUtilization = Math.min(100, 
+
+    const toolUtilization = Math.min(
+      100,
       Object.values(session.metrics.toolUsage).reduce((a, b) => a + b, 0) * 10
     );
-    
+
     return {
       taskCompletionRate: session.metrics.sessionScore >= 70 ? 90 : 70,
       solutionQuality: session.metrics.sessionScore,
-      timeEfficiency: Math.min(100, 100 - (session.duration / 60)),
+      timeEfficiency: Math.min(100, 100 - session.duration / 60),
       iterationCount: session.metrics.loopCount,
-      toolUtilization
+      toolUtilization,
     };
   }
 
@@ -418,7 +424,15 @@ Return your analysis in this JSON format:
     const hasReact = context.toLowerCase().includes("react");
     const hasTests = context.toLowerCase().includes("test");
 
-    return `This coding session demonstrates solid development practices with some areas for improvement. The developer shows competent tool usage and problem-solving abilities. ${hasTypeScript ? 'TypeScript is being used effectively for type safety.' : ''} ${hasReact ? 'React components are structured well.' : ''} ${hasTests ? 'Good to see testing practices in place.' : 'However, the lack of tests is a notable gap that should be addressed.'} The session shows an organized approach to problem-solving with reasonable efficiency. Consider focusing on improving test coverage and exploring more advanced patterns in future sessions.`;
+    return `This coding session demonstrates solid development practices with some areas for improvement. The developer shows competent tool usage and problem-solving abilities. ${
+      hasTypeScript
+        ? "TypeScript is being used effectively for type safety."
+        : ""
+    } ${hasReact ? "React components are structured well." : ""} ${
+      hasTests
+        ? "Good to see testing practices in place."
+        : "However, the lack of tests is a notable gap that should be addressed."
+    } The session shows an organized approach to problem-solving with reasonable efficiency. Consider focusing on improving test coverage and exploring more advanced patterns in future sessions.`;
   }
 
   /**

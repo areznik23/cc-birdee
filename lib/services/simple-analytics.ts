@@ -111,14 +111,13 @@ Return exactly 3 of each category, prioritized by impact and consistency across 
           messages: [
             {
               role: 'system',
-              content: 'You are an expert coding coach synthesizing insights from multiple coding session analyses. Your task is to identify overarching patterns, consistent strengths and weaknesses, and provide actionable recommendations based on the collective analysis.'
+              content: 'You are an expert coding coach synthesizing insights from multiple coding session analyses. Your task is to identify overarching patterns, consistent strengths and weaknesses, and provide actionable recommendations based on the collective analysis. Respond with a JSON object containing strengths, weaknesses, and tips arrays.'
             },
             {
               role: 'user',
               content: prompt
             }
           ],
-          temperature: 0.3,
           response_format: { type: 'json_object' }
         });
 
