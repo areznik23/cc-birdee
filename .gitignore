@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Yarn
+.yarnrc.yml
+
+# Analysis reports that may contain sensitive data
+*_prompt_analysis.md
+*_prompt_analysis_detailed.csv
+*_analysis.md
+*_analysis_detailed.csv
+prompt_analysis_report*.csv
+prompt_analysis_report*.json

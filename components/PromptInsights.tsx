@@ -1,102 +1,83 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, List, Tag, Select, Button, Spin, Progress, Typography, Space, Collapse } from 'antd';
+import { ThunderboltOutlined, ReloadOutlined, BulbOutlined } from '@ant-design/icons';
 import { 
   PromptAnalysisResponse, 
   ProjectPromptAnalysis, 
   PromptClassification 
 } from '@/lib/types/prompt-analysis';
-// Removed icon imports for simpler UI
 
+const { Text, Title } = Typography;
+const { Panel } = Collapse;
 
 // Suggest automation solutions based on classification
 const getAutomationSuggestion = (classification: string): string => {
   const lowerClass = classification.toLowerCase();
   
   if (lowerClass.includes('manual file context retrieval')) {
-    return 'Implement project-wide search, better file organization, or AI-powered file navigation';
+    return 'Project-wide search & AI file navigation';
   }
   if (lowerClass.includes('manual git branch management')) {
-    return 'Use git aliases, automated branch workflows, or CI/CD integration';
+    return 'Git aliases & automated workflows';
   }
   if (lowerClass.includes('manual incremental ui tweaks')) {
-    return 'Create UI component library, design system, or visual regression testing';
+    return 'Component library & design system';
   }
   if (lowerClass.includes('manual logging consistency')) {
-    return 'Implement structured logging, log aggregation, or automated log analysis';
+    return 'Structured logging & log aggregation';
   }
   if (lowerClass.includes('repetitive debugging')) {
-    return 'Add automated testing, linting rules, or error monitoring';
+    return 'Automated testing & error monitoring';
   }
   if (lowerClass.includes('boilerplate code')) {
-    return 'Create code generators, templates, or scaffolding tools';
+    return 'Code generators & templates';
   }
   if (lowerClass.includes('context rebuilding')) {
-    return 'Improve documentation, add CLAUDE.md files, or implement context persistence';
+    return 'CLAUDE.md files & context persistence';
   }
   
-  return 'Consider automation or workflow optimization for this pattern';
+  return 'Workflow optimization needed';
 };
 
-interface ClassificationCardProps {
+interface InsightItemProps {
   classification: PromptClassification;
-  index: number;
 }
 
-const ClassificationCard: React.FC<ClassificationCardProps> = ({ classification, index }) => {
+const InsightItem: React.FC<InsightItemProps> = ({ classification }) => {
   const suggestion = getAutomationSuggestion(classification.o3_classification);
+  const percentage = classification.percentage.toFixed(0);
   
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold">
-          {classification.o3_classification}
-        </h3>
-        <span className="text-sm text-gray-500">
-          {classification.percentage.toFixed(1)}%
-        </span>
-      </div>
-      
-      <div className="text-sm text-gray-600 mb-3">
-        {classification.prompt_count} prompts analyzed
-      </div>
-      
-      <div className="bg-gray-50 rounded p-3">
-        <p className="text-sm text-gray-700">{suggestion}</p>
-      </div>
-    </Card>
-  );
-};
-
-interface ProjectInsightsProps {
-  project: ProjectPromptAnalysis;
-}
-
-const ProjectInsights: React.FC<ProjectInsightsProps> = ({ project }) => {
-  const totalPrompts = project.analysisData?.classifications.reduce(
-    (sum, c) => sum + c.prompt_count, 0
-  ) || 0;
-  
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">{project.projectName.replace('Cc Birdee', '').trim() || 'Project Analysis'}</h2>
-        <div className="text-sm text-gray-600">
-          <span>{totalPrompts} prompts • Updated {new Date(project.lastUpdated).toLocaleDateString()}</span>
-        </div>
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2">
-        {project.analysisData?.classifications.map((classification, index) => (
-          <ClassificationCard
-            key={classification.topic_id}
-            classification={classification}
-            index={index}
-          />
-        ))}
-      </div>
-    </div>
+    <List.Item
+      actions={[
+        <Progress 
+          key="progress"
+          type="circle" 
+          percent={parseInt(percentage)} 
+          width={50}
+          strokeColor="#D4A574"
+        />
+      ]}
+    >
+      <List.Item.Meta
+        avatar={<BulbOutlined style={{ fontSize: 20, color: '#D4A574' }} />}
+        title={
+          <Space>
+            <Text strong>{classification.o3_classification}</Text>
+            <Tag color="blue">{classification.prompt_count} prompts</Tag>
+          </Space>
+        }
+        description={
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {suggestion}
+            </Text>
+          </Space>
+        }
+      />
+    </List.Item>
   );
 };
 
@@ -105,7 +86,7 @@ export const PromptInsights: React.FC = () => {
   const [data, setData] = useState<PromptAnalysisResponse | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [showAll, setShowAll] = useState(false);
   
   useEffect(() => {
     fetchPromptInsights();
@@ -125,7 +106,6 @@ export const PromptInsights: React.FC = () => {
       if (data.projects.length > 0 && !selectedProject) {
         setSelectedProject(data.projects[0].projectPath);
       }
-      setLastRefresh(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -133,84 +113,80 @@ export const PromptInsights: React.FC = () => {
     }
   };
   
+  
   if (loading) {
     return (
-      <div className="p-8 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-        <p className="mt-2 text-gray-600">Loading prompt insights...</p>
-      </div>
+      <Card size="small" style={{ textAlign: 'center' }}>
+        <Spin size="small" />
+      </Card>
     );
   }
   
-  if (error) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-red-600">Error: {error}</p>
-      </div>
-    );
-  }
-  
-  if (!data || data.projects.length === 0) {
-    return (
-      <div className="p-8 text-center">
-        <h3 className="text-lg font-semibold mb-2">No Prompt Analysis Available</h3>
-        <p className="text-gray-600 max-w-md mx-auto">
-          Run the prompt analysis script on your Claude session logs to see automation insights here.
-        </p>
-        <pre className="mt-4 text-xs bg-gray-100 p-2 rounded inline-block">
-          python scripts/analyze_prompt_topics.py ~/.claude/projects/YOUR_PROJECT
-        </pre>
-      </div>
-    );
+  if (error || !data || data.projects.length === 0) {
+    return null;
   }
   
   const selectedProjectData = data.projects.find(p => p.projectPath === selectedProject);
+  const classifications = selectedProjectData?.analysisData?.classifications || [];
+  const totalPrompts = classifications.reduce((sum, c) => sum + c.prompt_count, 0);
+  const displayedClassifications = showAll ? classifications : classifications.slice(0, 3);
   
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Prompt Analysis Insights</h1>
-          <p className="text-gray-600">
-            Automation opportunities and workflow improvements identified in your Claude usage patterns
-          </p>
-          {data && data.projects.length > 0 && (
-            <p className="text-sm text-gray-500 mt-2">
-              Last refreshed: {lastRefresh.toLocaleTimeString()}
-            </p>
+    <Card
+      size="small"
+      title={
+        <Space>
+          <ThunderboltOutlined style={{ color: '#D4A574' }} />
+          <Text strong>Workflow Automation Opportunities</Text>
+          <Tag>{totalPrompts} prompts analyzed</Tag>
+        </Space>
+      }
+      extra={
+        <Space>
+          {data.projects.length > 1 && (
+            <Select
+              size="small"
+              value={selectedProject || ''}
+              onChange={setSelectedProject}
+              style={{ width: 150 }}
+              options={data.projects.map(project => ({
+                label: project.projectName.replace('Cc Birdee', '').trim(),
+                value: project.projectPath
+              }))}
+            />
           )}
-        </div>
-        <button
-          onClick={fetchPromptInsights}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Refresh
-        </button>
-      </div>
-      
-      {data.projects.length > 1 && (
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Project
-          </label>
-          <select
-            value={selectedProject || ''}
-            onChange={(e) => setSelectedProject(e.target.value)}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            {data.projects.map(project => (
-              <option key={project.projectPath} value={project.projectPath}>
-                {project.projectName}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      
-      {selectedProjectData && (
-        <ProjectInsights project={selectedProjectData} />
-      )}
-    </div>
+          <Button
+            size="small"
+            icon={<ReloadOutlined />}
+            onClick={fetchPromptInsights}
+            loading={loading}
+          />
+        </Space>
+      }
+      styles={{ body: { padding: 0 } }}
+    >
+      <List
+        dataSource={displayedClassifications}
+        renderItem={(classification) => (
+          <InsightItem
+            key={classification.topic_id}
+            classification={classification}
+          />
+        )}
+        footer={
+          classifications.length > 3 && (
+            <div style={{ textAlign: 'center', padding: 8 }}>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => setShowAll(!showAll)}
+              >
+                {showAll ? '← Show less' : `Show ${classifications.length - 3} more →`}
+              </Button>
+            </div>
+          )
+        }
+      />
+    </Card>
   );
 };

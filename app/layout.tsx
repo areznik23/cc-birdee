@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import 'antd/dist/reset.css';
+import { AntdThemeProvider } from "@/lib/theme/antd-theme";
 
 export const metadata: Metadata = {
   title: "Claude Code Analyzer",
@@ -14,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
+        <AntdThemeProvider>
+          {children}
+        </AntdThemeProvider>
       </body>
     </html>
   );
