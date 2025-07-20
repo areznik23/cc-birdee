@@ -463,6 +463,9 @@ function createTimelineSegments(
       // Filter out messages that contain "[Request interrupted by user for tool use]"
       if (content.includes('[Request interrupted by user for tool use]')) return false;
       
+      // Filter out messages that contain "<system-reminder>"
+      if (content.includes('<system-reminder>')) return false;
+      
       // Filter out initial_question since it's displayed above the timeline
       if (msg.activity === 'initial_question') return false;
       

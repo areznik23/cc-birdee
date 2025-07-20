@@ -56,7 +56,7 @@ const InsightItem: React.FC<InsightItemProps> = ({ classification }) => {
           key="progress"
           type="circle" 
           percent={parseInt(percentage)} 
-          width={50}
+          size={50}
           strokeColor="#D4A574"
         />
       ]}
