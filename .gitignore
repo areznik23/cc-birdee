@@ -50,3 +50,7 @@ next-env.d.ts
 *_analysis_detailed.csv
 prompt_analysis_report*.csv
 prompt_analysis_report*.json
+
+# Exclude CSV files that may contain sensitive data
+mhatre_claude_projects_analysis*.csv
+photonium_*.csv
