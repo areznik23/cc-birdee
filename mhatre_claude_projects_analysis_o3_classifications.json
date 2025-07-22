@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-07-21T20:56:35.162851",
+  "classifications": [
+    {
+      "topic_id": 0,
+      "o3_classification": "Classification unavailable (no OpenAI API key)",
+      "bertopic_name": "0_level_info_s3_main",
+      "prompt_count": 125,
+      "percentage": 19.083969465648856
+    },
+    {
+      "topic_id": 1,
+      "o3_classification": "Classification unavailable (no OpenAI API key)",
+      "bertopic_name": "1_dev_modules_agent_id",
+      "prompt_count": 98,
+      "percentage": 14.961832061068703
+    },
+    {
+      "topic_id": 2,
+      "o3_classification": "Classification unavailable (no OpenAI API key)",
+      "bertopic_name": "2_server_running_connection_okay",
+      "prompt_count": 82,
+      "percentage": 12.51908396946565
+    },
+    {
+      "topic_id": 3,
+      "o3_classification": "Classification unavailable (no OpenAI API key)",
+      "bertopic_name": "3_messages_user_unless_generated",
+      "prompt_count": 78,
+      "percentage": 11.908396946564885
+    }
+  ]
+}

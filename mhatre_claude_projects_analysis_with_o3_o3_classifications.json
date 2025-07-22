@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-07-21T21:00:41.305546",
+  "classifications": [
+    {
+      "topic_id": 0,
+      "o3_classification": "Ad-hoc debugging and testing",
+      "bertopic_name": "0_dev_modules_structure_run",
+      "prompt_count": 130,
+      "percentage": 19.84732824427481
+    },
+    {
+      "topic_id": 1,
+      "o3_classification": "Environment configuration visibility gaps",
+      "bertopic_name": "1_file_env_command_env file",
+      "prompt_count": 116,
+      "percentage": 17.709923664122137
+    },
+    {
+      "topic_id": 2,
+      "o3_classification": "Manual integration testing bottlenecks",
+      "bertopic_name": "2_event_logger_timestamp_level",
+      "prompt_count": 104,
+      "percentage": 15.877862595419847
+    },
+    {
+      "topic_id": 3,
+      "o3_classification": "Redundant model switching commands",
+      "bertopic_name": "3_messages_user_commandargscommandargs_unless",
+      "prompt_count": 51,
+      "percentage": 7.786259541984733
+    }
+  ]
+}

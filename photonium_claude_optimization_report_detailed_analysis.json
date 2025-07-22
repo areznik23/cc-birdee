@@ -1,0 +1,53 @@
+{
+  "timestamp": "2025-07-21T21:12:04.760574",
+  "metrics": {
+    "avg_length": 26.016793893129773,
+    "total_prompts": 655,
+    "unique_sessions": 32,
+    "prompts_per_session": 20.46875,
+    "estimated_tokens": 22153,
+    "estimated_cost": 0.6645989999999999
+  },
+  "pattern_analyses": [
+    {
+      "topic_id": 0,
+      "category": "Environment-variable visibility gaps",
+      "insight": "The team keeps asking why the app/AI assistant cannot \"see\" the .env file, showing that required variables aren\u2019t reliably loaded across local, Vercel, or CLI-tool contexts.",
+      "action": "Add a pre-start script (e.g. scripts/validate-env.ts) that imports dotenv, checks a typed list of required keys (AWS_*, S3_BUCKET, SUPABASE_URL, PHOTONIUM_API_KEY, etc.), and exits with a clear message if any are missing. Run this script in `npm run dev`, in `vercel build`, and inside CI; commit an `.env.example` so newcomers know the expected keys.",
+      "impact": "Cuts 1-2 hrs/week spent on \"why doesn\u2019t it load?\" debugging and should reduce failed Vercel deployments by ~40 %.",
+      "template": "<prompt>\nYou are Photonium DevOps Assistant.\nTask: Validate project environment before running.\nRequired variables:\n- AWS_ACCESS_KEY_ID\n- AWS_SECRET_ACCESS_KEY\n- S3_BUCKET\n- SUPABASE_URL\n- SUPABASE_KEY\n- PHOTONIUM_API_KEY\n\nReturn a JSON report with:\n  valid (boolean),\n  missing (array of strings),\n  suggestions (array of strings)\n</prompt>",
+      "prompt_count": 283,
+      "percentage": 43.20610687022901
+    },
+    {
+      "topic_id": 1,
+      "category": "Opaque LLM Query Generation",
+      "insight": "Engineers keep manually asking to \"add debug statements\" to see what the LLM spits out when building search queries, showing that prompts/responses, temps, and token-use aren\u2019t centrally logged or inspectable.",
+      "action": "Wrap every OpenAI/Claude call in a TypeScript middleware (e.g. `withLLMDebug`) that, when `DEBUG_LLM=true`, captures prompt, params, response, token counts, and a correlation ID, then streams them to console + writes a JSON line to `/tmp/llm-logs` (local) or an S3 `photonium-logs/llm/` prefix (prod). Surface the last N calls at `/api/debug/llm` for quick inspection.",
+      "impact": "Save ~2 hrs/week spent on ad-hoc print-statements and cut query-generation errors by ~30% because issues become reproducible.",
+      "template": "Claude, generate a TypeScript utility called `withLLMDebug` for our Next.js repo. Requirements:\n1. Accepts an async fn that executes an LLM call.\n2. When `process.env.DEBUG_LLM==='true'` it logs: ISO timestamp, correlationId (uuid), model, temp, prompt tokens, completion tokens, total tokens, prompt text (truncated to 500 chars), and full response.\n3. Writes the same JSON to (a) `/tmp/llm-logs/{date}.log` locally, (b) `s3://photonium-logs/llm/{yyyymmdd}.log` in prod (use AWS SDK v3, bucket & prefix from env).\n4. Returns the original LLM response unchanged.\n5. Provide example usage wrapping `generateSearchQuery()` and Jest tests that mock the AWS client.\nDo NOT include unrelated boilerplate.",
+      "prompt_count": 229,
+      "percentage": 34.961832061068705
+    },
+    {
+      "topic_id": 2,
+      "category": "Ad-hoc Commit & Push Loop",
+      "insight": "Chats show frequent, informal instructions like \u201cOkay let's commit and push\u201d with no consistent message format or automated checks, so bug-fix verification and history tracing are manual and error-prone.",
+      "action": "Introduce a Git workflow using Conventional Commits, pre-commit husky hooks, and a GitHub Actions CI pipeline that runs unit/optics tests before allowing a push; add a commit-message template that references issue IDs and links to the S3/optics test fixtures.",
+      "impact": "Cuts ~2-3 hrs/week spent on manual verification and reduces regression/merge-conflict debugging by ~35%.",
+      "template": "You are Photonium-CI. Draft a Conventional Commit message (type/scope/subject + body) that:\n1. Summarizes the change in \u226450 chars.\n2. Links the relevant GitHub issue #.\n3. Lists files changed.\n4. Describes how optics/S3 tests passed.\n\nInput:\n- Change summary: <one-line>\n- Issue #: <number>\n- Files: <list>\n- Test results: <brief>\n\nReturn ONLY the commit text.",
+      "prompt_count": 46,
+      "percentage": 7.022900763358779
+    },
+    {
+      "topic_id": 3,
+      "category": "Redundant Playwright MCP Setup",
+      "insight": "Developers keep asking the LLM to walk through Playwright MCP installation/configuration, showing there is no repeatable, version-controlled setup process for browser-automation tooling.",
+      "action": "Create a checked-in script (e.g., scripts/setup_playwright_mcp.sh) and an npm alias (\"npm run setup:mcp\") that installs Playwright, pulls the chosen MCP repo, links it, and verifies installation; document this in the repo README and CI so each environment (local, CI, Vercel preview) can run it with one command.",
+      "impact": "Save ~1\u20132 hours per new machine/onboard and cut MCP-related troubleshooting by \u224840 %.",
+      "template": "Prompt:  \n\"You are Photonium's Dev Ops assistant. Generate or update a bash script called scripts/setup_playwright_mcp.sh that:  \n1. Checks Node, npm, and Playwright versions.  \n2. Clones https://github.com/areznik23/cc-meta (shallow, specific tag).  \n3. Installs its dependencies with pnpm and builds the MCP package.  \n4. Links the built MCP into /opt/photonium or the monorepo packages directory.  \n5. Runs `npx playwright install --with-deps`.  \n6. Echoes \u2705 when MCP is ready.  \nAlso output the package.json \u2018scripts\u2019 entry and a README snippet showing \u2018npm run setup:mcp\u2019.\"",
+      "prompt_count": 31,
+      "percentage": 4.732824427480916
+    }
+  ]
+}

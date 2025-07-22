@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Layout, Button, Input, Space, Card, Typography, Spin, Alert, Form, Tag } from 'antd';
-import { CopyOutlined, ThunderboltOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
+import { Layout, Button, Input, Space, Card, Typography, Spin, Alert, Form, Tag, Modal } from 'antd';
+import { CopyOutlined, ThunderboltOutlined, CheckCircleOutlined, FileTextOutlined } from '@ant-design/icons';
 import { AppHeader } from '@/components/AppHeader';
 import { useTerminal } from '@/lib/hooks/use-terminal';
-import { useClaude } from '@/lib/hooks/use-claude';
+import { useClaudeJob } from '@/lib/hooks/use-claude-job';
 
 const { Content } = Layout;
 const { TextArea } = Input;
@@ -21,12 +21,22 @@ export default function PromptWorkbench() {
   const [context, setContext] = useState<Record<string, string>>({});
   const [useClaudeForContext, setUseClaudeForContext] = useState(false);
   const [executionStatus, setExecutionStatus] = useState<string[]>([]);
+  const [logModalVisible, setLogModalVisible] = useState(false);
+  const [logContent, setLogContent] = useState<any>(null);
+  const [loadingLog, setLoadingLog] = useState(false);
   const { gatherContext, loading: terminalLoading } = useTerminal();
-  const { gatherContextFromClaude, loading: claudeLoading, lastResult: claudeResult } = useClaude();
+  const { executeClaude, loading: claudeLoading, currentJob, statusHistory, cleanup } = useClaudeJob();
 
   const addStatus = (status: string) => {
     setExecutionStatus(prev => [...prev, `${new Date().toLocaleTimeString()}: ${status}`]);
   };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   const handleEnhance = async () => {
     if (!task.trim()) return;
@@ -45,53 +55,45 @@ export default function PromptWorkbench() {
       if (useClaudeForContext) {
         // Ask Claude what context is needed
         addStatus('🤖 Asking Claude to analyze context requirements...');
-        addStatus('📋 Command: claude --dangerously-skip-permissions [prompt]');
-        addStatus('📁 Working directory: /Users/alexanderreznik/Desktop/cc-birdee');
-        addStatus('⏳ Claude is processing your request...');
-        addStatus('⚠️ This may take 1-3 minutes for complex analysis');
+        addStatus('📋 Using headless mode: claude -p [prompt]');
         
-        const startTime = Date.now();
+        // Build context analysis prompt
+        const contextPrompt = `I'm working on a Next.js application and need help understanding what context I should gather for the following task:
+
+Task: "${task}"
+
+Please analyze this task and tell me:
+1. What files or code should I examine?
+2. What existing implementation details are relevant?
+3. What design patterns or architecture decisions should be considered?
+4. Are there any dependencies or integrations to be aware of?
+
+Please provide a comprehensive list of all the context that should be gathered before implementing this task.`;
         
-        // Start a timer to show progress
-        const progressInterval = setInterval(() => {
-          const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-          addStatus(`⏱️ Still processing... (${elapsedTime}s elapsed)`);
-        }, 15000); // Update every 15 seconds
-        
-        const claudeContext = await gatherContextFromClaude(task, (status) => {
-          addStatus(`🔄 ${status}`);
-        });
-        
-        // Stop the progress timer
-        clearInterval(progressInterval);
-        
-        // Show execution details
-        if (claudeResult) {
-          if (claudeResult.executionTime) {
-            const seconds = (claudeResult.executionTime / 1000).toFixed(1);
-            addStatus(`✅ Claude responded in ${seconds} seconds`);
-          }
-          if (claudeResult.stdout && !claudeResult.response) {
-            addStatus(`📤 Stdout: ${claudeResult.stdout.substring(0, 100)}...`);
-          }
-          if (claudeResult.stderr) {
-            addStatus(`⚠️ Stderr: ${claudeResult.stderr}`);
-          }
-        }
-        
-        addStatus('✅ Claude analysis complete');
-        if (claudeContext) {
-          addStatus('📝 Claude\'s response:');
-          // Split response into lines and show first few
-          const lines = claudeContext.split('\n').filter(line => line.trim());
-          lines.slice(0, 5).forEach(line => {
-            addStatus(`    ${line.substring(0, 80)}${line.length > 80 ? '...' : ''}`);
+        try {
+          const result = await executeClaude(contextPrompt, {
+            onStatusUpdate: (status) => addStatus(`🔄 ${status}`),
+            allowedTools: 'Edit,Bash(git:*),Bash(npm:test*)',
+            maxTurns: 3,
           });
-          if (lines.length > 5) {
-            addStatus(`    ... (${lines.length - 5} more lines)`);
+          
+          if (result.output) {
+            addStatus('✅ Claude analysis complete');
+            addStatus('📝 Claude\'s response:');
+            // Split response into lines and show first few
+            const lines = result.output.split('\n').filter(line => line.trim());
+            lines.slice(0, 5).forEach(line => {
+              addStatus(`    ${line.substring(0, 80)}${line.length > 80 ? '...' : ''}`);
+            });
+            if (lines.length > 5) {
+              addStatus(`    ... (${lines.length - 5} more lines)`);
+            }
+            gatheredContext = { claudeAnalysis: result.output };
           }
+        } catch (error) {
+          console.error('Claude context gathering failed:', error);
+          addStatus('❌ Failed to gather context from Claude');
         }
-        gatheredContext = { claudeAnalysis: claudeContext };
       } else {
         // Gather terminal context
         addStatus('🔍 Gathering terminal context...');
@@ -221,28 +223,36 @@ export default function PromptWorkbench() {
         </Card>
 
         {/* Execution Status */}
-        {executionStatus.length > 0 && (
+        {(executionStatus.length > 0 || statusHistory.length > 0) && (
           <Card 
             title="Execution Log" 
             size="small"
             extra={
-              <Button 
-                size="small" 
-                onClick={async () => {
-                  const res = await fetch('/api/claude/check');
-                  const data = await res.json();
-                  if (data.running) {
-                    addStatus(`✅ Claude is running (${data.count} process${data.count > 1 ? 'es' : ''})`);
-                    data.processes.forEach((p: any) => {
-                      addStatus(`  PID: ${p.pid}, CPU: ${p.cpu}%, MEM: ${p.mem}%`);
-                    });
-                  } else {
-                    addStatus('❌ No Claude processes found');
-                  }
-                }}
-              >
-                Check Status
-              </Button>
+              <Space>
+                <Button 
+                  size="small" 
+                  onClick={async () => {
+                    const res = await fetch('/api/claude/job/list');
+                    const data = await res.json();
+                    addStatus(`📊 Jobs: ${data.running} running, ${data.completed} completed, ${data.failed} failed`);
+                  }}
+                >
+                  List Jobs
+                </Button>
+                {currentJob && (
+                  <Button 
+                    size="small" 
+                    type="primary"
+                    onClick={async () => {
+                      const res = await fetch(`/api/claude/job/status/${currentJob.jobId}`);
+                      const data = await res.json();
+                      addStatus(`🔄 Job ${currentJob.jobId}: ${data.status}`);
+                    }}
+                  >
+                    Refresh Status
+                  </Button>
+                )}
+              </Space>
             }
             style={{ 
               backgroundColor: '#f5f5f5',
@@ -255,7 +265,7 @@ export default function PromptWorkbench() {
             }}
           >
             <Space direction="vertical" size={2} style={{ width: '100%' }}>
-              {executionStatus.map((status, index) => (
+              {[...executionStatus, ...statusHistory].map((status, index) => (
                 <Text 
                   key={index} 
                   style={{ 
@@ -270,6 +280,60 @@ export default function PromptWorkbench() {
                   {status}
                 </Text>
               ))}
+            </Space>
+          </Card>
+        )}
+
+        {/* Current Job Status */}
+        {currentJob && (
+          <Card 
+            title="Claude Job Status" 
+            size="small"
+            extra={
+              <Tag color={
+                currentJob.status === 'running' ? 'processing' :
+                currentJob.status === 'completed' ? 'success' :
+                currentJob.status === 'failed' ? 'error' : 'default'
+              }>
+                {currentJob.status}
+              </Tag>
+            }
+            style={{ 
+              backgroundColor: '#fafafa',
+              borderColor: '#d9d9d9',
+            }}
+          >
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Text><strong>Job ID:</strong> {currentJob.jobId}</Text>
+              {currentJob.executionTime && (
+                <Text><strong>Execution Time:</strong> {(currentJob.executionTime / 1000).toFixed(1)}s</Text>
+              )}
+              <Button 
+                size="small"
+                icon={<FileTextOutlined />}
+                loading={loadingLog}
+                onClick={async () => {
+                  setLoadingLog(true);
+                  try {
+                    const res = await fetch(`/api/claude/job/log/${currentJob.jobId}`);
+                    const data = await res.json();
+                    if (data.logFile) {
+                      setLogContent(data);
+                      setLogModalVisible(true);
+                    } else if (data.error) {
+                      addStatus(`⚠️ ${data.error}`);
+                    }
+                  } finally {
+                    setLoadingLog(false);
+                  }
+                }}
+                disabled={currentJob.status === 'pending'}
+              >
+                View Claude Session Log
+              </Button>
+              {currentJob.error && (
+                <Alert message={currentJob.error} type="error" showIcon />
+              )}
             </Space>
           </Card>
         )}
@@ -325,6 +389,74 @@ export default function PromptWorkbench() {
           </Card>
         )}
         </div>
+        
+        {/* Log File Modal */}
+        <Modal
+          title={
+            <Space>
+              <FileTextOutlined />
+              <Text>Claude Session Log</Text>
+            </Space>
+          }
+          open={logModalVisible}
+          onCancel={() => setLogModalVisible(false)}
+          width={800}
+          footer={[
+            <Button key="close" onClick={() => setLogModalVisible(false)}>
+              Close
+            </Button>,
+            <Button 
+              key="copy" 
+              icon={<CopyOutlined />} 
+              onClick={() => {
+                if (logContent?.logFile) {
+                  navigator.clipboard.writeText(logContent.logFile);
+                  addStatus('📋 Log file path copied to clipboard');
+                }
+              }}
+            >
+              Copy Path
+            </Button>
+          ]}
+        >
+          {logContent && (
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Text code style={{ fontSize: '12px' }}>{logContent.logFile}</Text>
+              <Text type="secondary">Total entries: {logContent.totalLines}</Text>
+              
+              <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '16px' }}>
+                {logContent.entries?.map((entry: any, index: number) => (
+                  <Card 
+                    key={index} 
+                    size="small" 
+                    style={{ marginBottom: '8px' }}
+                    type={entry.message?.role === 'assistant' ? 'inner' : undefined}
+                  >
+                    {entry.message ? (
+                      <>
+                        <Tag color={entry.message.role === 'user' ? 'blue' : 'green'}>
+                          {entry.message.role}
+                        </Tag>
+                        {entry.message.content && (
+                          <Text style={{ fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                            {typeof entry.message.content === 'string' 
+                              ? entry.message.content.substring(0, 500) 
+                              : JSON.stringify(entry.message.content).substring(0, 500)}
+                            {(typeof entry.message.content === 'string' ? entry.message.content : JSON.stringify(entry.message.content)).length > 500 && '...'}
+                          </Text>
+                        )}
+                      </>
+                    ) : (
+                      <Text style={{ fontSize: '12px' }} type="secondary">
+                        {JSON.stringify(entry).substring(0, 200)}...
+                      </Text>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </Space>
+          )}
+        </Modal>
       </Content>
     </Layout>
   );
